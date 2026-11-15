@@ -95,7 +95,10 @@ footer {
 
 </div>
 
+
 <script>
+let waitingForCommand = false;
+
 function startDude() {
 
   const SpeechRecognition =
@@ -115,40 +118,62 @@ function startDude() {
   recognition.interimResults = false;
 
   document.getElementById("status").innerText =
-    "LISTENING...";
+    "LISTENING FOR HEY DUDE...";
 
   recognition.onresult = function(event) {
 
-    const text = event.results[
-      event.results.length - 1
-    ][0].transcript.toLowerCase();
+    for (let i = event.resultIndex;
+         i < event.results.length; i++) {
 
-    document.getElementById("heard").innerText =
-      "Heard: " + text;
+      if (!event.results[i].isFinal) continue;
 
-    if (text.includes("hey dude")) {
+      const text =
+        event.results[i][0].transcript.toLowerCase().trim();
 
-      document.getElementById("status").innerText =
-        "DUDE ACTIVATED!";
+      document.getElementById("heard").innerText =
+        "Heard: " + text;
 
-      recognition.stop();
+      if (text.includes("hey dude")) {
 
-      const speech = new SpeechSynthesisUtterance(
-        "Yes, I am listening!"
-      );
+        waitingForCommand = true;
 
-      window.speechSynthesis.speak(speech);
+        document.getElementById("status").innerText =
+          "DUDE ACTIVATED - SPEAK NOW";
+
+        const speech = new SpeechSynthesisUtterance(
+          "Yes, I'm listening!"
+        );
+
+        window.speechSynthesis.speak(speech);
+
+      } else if (waitingForCommand) {
+
+        waitingForCommand = false;
+
+        document.getElementById("status").innerText =
+          "COMMAND RECEIVED";
+
+        document.getElementById("heard").innerText =
+          "Your command: " + text;
+
+        const speech = new SpeechSynthesisUtterance(
+          "Command received: " + text
+        );
+
+        window.speechSynthesis.speak(speech);
+      }
     }
   };
 
   recognition.onerror = function() {
     document.getElementById("status").innerText =
-      "Microphone error";
+      "MICROPHONE ERROR";
   };
 
   recognition.start();
 }
 </script>
+
 
 </body>
 </html>
