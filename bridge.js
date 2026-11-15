@@ -3,9 +3,19 @@ window.addEventListener("message", (event) => {
   if (event.source !== window) return;
 
   if (event.data?.type === "DUDE_SEND_COMMAND") {
-    window.postMessage({
-      type: "DUDE_EXTENSION_COMMAND",
+    chrome.runtime.sendMessage({
+      action: "SEND_TO_CHATGPT",
       text: event.data.text
-    }, window.location.origin);
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error(
+          "DUDE CONNECT:",
+          chrome.runtime.lastError.message
+        );
+        return;
+      }
+
+      console.log("DUDE CONNECT:", response);
+    });
   }
 });
