@@ -8,7 +8,8 @@
     "tabs"
   ],
   "host_permissions": [
-    "https://chatgpt.com/*"
+    "https://chatgpt.com/*",
+    "https://bharatbandaru-45.github.io/dude/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -20,6 +21,15 @@
       ],
       "js": [
         "chatgpt.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://bharatbandaru-45.github.io/dude/*"
+      ],
+      "js": [
+        "bridge.js"
       ],
       "run_at": "document_idle"
     }
