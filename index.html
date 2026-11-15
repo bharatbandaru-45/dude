@@ -96,8 +96,11 @@ footer {
 </div>
 
 
+
 <script>
+let recognition;
 let waitingForCommand = false;
+let isRunning = false;
 
 function startDude() {
 
@@ -111,8 +114,12 @@ function startDude() {
     return;
   }
 
-  const recognition = new SpeechRecognition();
+  if (isRunning) return;
 
+  isRunning = true;
+  waitingForCommand = false;
+
+  recognition = new SpeechRecognition();
   recognition.lang = "en-IN";
   recognition.continuous = true;
   recognition.interimResults = false;
@@ -133,17 +140,24 @@ function startDude() {
       document.getElementById("heard").innerText =
         "Heard: " + text;
 
-      if (text.includes("hey dude")) {
+      if (text.includes("hey dude") && !waitingForCommand) {
 
         waitingForCommand = true;
 
         document.getElementById("status").innerText =
           "DUDE ACTIVATED - SPEAK NOW";
 
+        recognition.stop();
+
         const speech = new SpeechSynthesisUtterance(
           "Yes, I'm listening!"
         );
 
+        speech.onend = function() {
+          recognition.start();
+        };
+
+        window.speechSynthesis.cancel();
         window.speechSynthesis.speak(speech);
 
       } else if (waitingForCommand) {
@@ -156,18 +170,24 @@ function startDude() {
         document.getElementById("heard").innerText =
           "Your command: " + text;
 
-        const speech = new SpeechSynthesisUtterance(
+        const reply = new SpeechSynthesisUtterance(
           "Command received: " + text
         );
 
-        window.speechSynthesis.speak(speech);
+        window.speechSynthesis.speak(reply);
       }
     }
   };
 
-  recognition.onerror = function() {
+  recognition.onend = function() {
+    if (isRunning && !window.speechSynthesis.speaking) {
+      recognition.start();
+    }
+  };
+
+  recognition.onerror = function(event) {
     document.getElementById("status").innerText =
-      "MICROPHONE ERROR";
+      "MIC ERROR: " + event.error;
   };
 
   recognition.start();
