@@ -167,8 +167,10 @@ function startDude() {
         document.getElementById("status").innerText =
           "COMMAND RECEIVED";
 
-        document.getElementById("heard").innerText =
-          "Your command: " + text;
+        window.postMessage({
+  type: "DUDE_SEND_COMMAND",
+  text: text
+}, "*");
 
         const reply = new SpeechSynthesisUtterance(
           "Command received: " + text
