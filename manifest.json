@@ -1,0 +1,27 @@
+
+{
+  "manifest_version": 3,
+  "name": "DUDE CONNECT",
+  "version": "1.0",
+  "description": "Connect Project Dude voice assistant to ChatGPT",
+  "permissions": [
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://chatgpt.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*"
+      ],
+      "js": [
+        "chatgpt.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
