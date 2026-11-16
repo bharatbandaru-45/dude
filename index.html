@@ -105,7 +105,21 @@ footer {
 let recognition;
 let waitingForCommand = false;
 let isRunning = false;
+function stopDude() {
+  isRunning = false;
+  waitingForCommand = false;
 
+  if (recognition) {
+    recognition.stop();
+  }
+
+  window.speechSynthesis.cancel();
+
+  document.getElementById("status").innerText =
+    "DUDE STOPPED";
+
+  document.getElementById("heard").innerText = "";
+}
 function startDude() {
 
   const SpeechRecognition =
