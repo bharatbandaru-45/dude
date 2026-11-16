@@ -149,7 +149,13 @@ function startDude() {
   waitingForCommand = false;
 
   recognition = new SpeechRecognition();
-  recognition.lang = "en-IN";
+  const selectedLanguage =
+  document.getElementById("languageSelect").value;
+
+recognition.lang =
+  selectedLanguage === "tanglish"
+    ? "te-IN"
+    : selectedLanguage;
   recognition.continuous = true;
   recognition.interimResults = false;
 
