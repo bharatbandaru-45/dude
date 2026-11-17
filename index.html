@@ -195,7 +195,21 @@ recognition.lang =
         window.speechSynthesis.cancel();
         window.speechSynthesis.speak(speech);
 
-      } else if (waitingForCommand) {
+      
+} else if (waitingForCommand) {
+
+  document.getElementById("status").innerText =
+    "COMMAND RECEIVED - READY FOR NEXT";
+
+  window.postMessage({
+    type: "DUDE_SEND_COMMAND",
+    text: text
+  }, "*");
+
+  // Keep listening for the next command
+  waitingForCommand = true;
+}
+
 
         waitingForCommand = false;
 
