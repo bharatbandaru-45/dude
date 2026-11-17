@@ -161,7 +161,8 @@ function startDude() {
       : selectedLanguage;
 
   recognition.continuous = true;
-  recognition.interimResults = true;
+recognition.interimResults = true;
+recognition.maxAlternatives = 3;
 
   document.getElementById("status").innerText =
     "LISTENING FOR HEY DUDE...";
