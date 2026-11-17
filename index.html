@@ -112,10 +112,12 @@ footer {
 
 
 
+
 <script>
 let recognition;
 let waitingForCommand = false;
 let isRunning = false;
+
 function stopDude() {
   isRunning = false;
   waitingForCommand = false;
@@ -131,8 +133,8 @@ function stopDude() {
 
   document.getElementById("heard").innerText = "";
 }
-function startDude() {
 
+function startDude() {
   const SpeechRecognition =
     window.SpeechRecognition ||
     window.webkitSpeechRecognition;
@@ -149,13 +151,15 @@ function startDude() {
   waitingForCommand = false;
 
   recognition = new SpeechRecognition();
-  const selectedLanguage =
-  document.getElementById("languageSelect").value;
 
-recognition.lang =
-  selectedLanguage === "tanglish"
-    ? "te-IN"
-    : selectedLanguage;
+  const selectedLanguage =
+    document.getElementById("languageSelect").value;
+
+  recognition.lang =
+    selectedLanguage === "tanglish"
+      ? "te-IN"
+      : selectedLanguage;
+
   recognition.continuous = true;
   recognition.interimResults = false;
 
@@ -163,10 +167,11 @@ recognition.lang =
     "LISTENING FOR HEY DUDE...";
 
   recognition.onresult = function(event) {
-
-    for (let i = event.resultIndex;
-         i < event.results.length; i++) {
-
+    for (
+      let i = event.resultIndex;
+      i < event.results.length;
+      i++
+    ) {
       if (!event.results[i].isFinal) continue;
 
       const text =
@@ -176,69 +181,43 @@ recognition.lang =
         "Heard: " + text;
 
       if (text.includes("hey dude") && !waitingForCommand) {
-
         waitingForCommand = true;
 
         document.getElementById("status").innerText =
           "DUDE ACTIVATED - SPEAK NOW";
 
-        recognition.stop();
-
-        const speech = new SpeechSynthesisUtterance(
-          "Yes, I'm listening!"
-        );
-
-        speech.onend = function() {
-          recognition.start();
-        };
-
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(speech);
-
-      
-} else if (waitingForCommand) {
-
-  document.getElementById("status").innerText =
-    "COMMAND RECEIVED - READY FOR NEXT";
-
-  window.postMessage({
-    type: "DUDE_SEND_COMMAND",
-    text: text
-  }, "*");
-
-  // Keep listening for the next command
-  waitingForCommand = true;
-}
-
-
-        waitingForCommand = false;
-
+      } else if (waitingForCommand) {
         document.getElementById("status").innerText =
-          "COMMAND RECEIVED";
+          "COMMAND RECEIVED - READY FOR NEXT";
 
         window.postMessage({
-  type: "DUDE_SEND_COMMAND",
-  text: text
-}, "*");
-
-        const reply = new SpeechSynthesisUtterance(
-          "Command received: " + text
-        );
-
-        window.speechSynthesis.speak(reply);
+          type: "DUDE_SEND_COMMAND",
+          text: text
+        }, "*");
       }
     }
   };
 
   recognition.onend = function() {
-    if (isRunning && !window.speechSynthesis.speaking) {
-      recognition.start();
+    if (isRunning) {
+      try {
+        recognition.start();
+      } catch (error) {
+        console.log("Recognition restart:", error);
+      }
     }
   };
 
   recognition.onerror = function(event) {
     document.getElementById("status").innerText =
       "MIC ERROR: " + event.error;
+
+    if (
+      event.error === "not-allowed" ||
+      event.error === "service-not-allowed"
+    ) {
+      isRunning = false;
+    }
   };
 
   recognition.start();
