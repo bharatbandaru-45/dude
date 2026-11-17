@@ -187,17 +187,18 @@ function startDude() {
           "DUDE ACTIVATED - SPEAK NOW";
 
       } else if (waitingForCommand) {
-        document.getElementById("status").innerText =
-          "COMMAND RECEIVED - READY FOR NEXT";
 
-        window.postMessage({
-          type: "DUDE_SEND_COMMAND",
-          text: text
-        }, "*");
-      }
-    }
-  };
+  waitingForCommand = false;
 
+  document.getElementById("status").innerText =
+    "COMMAND RECEIVED - LISTENING FOR HEY DUDE";
+
+  window.postMessage({
+    type: "DUDE_SEND_COMMAND",
+    text: text
+  }, "*");
+
+}
   recognition.onend = function() {
     if (isRunning) {
       try {
