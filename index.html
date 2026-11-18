@@ -106,6 +106,7 @@ const langSel = $('languageSelect'), sensSel = $('sensitivity');
 const startBtn = $('startBtn'), stopBtn = $('stopBtn');
 
 let recognition = null, isRunning = false, waitingForCommand = false;
+let continuousMode = false;
 let pendingCmd = '', silenceTimer = null, noCmdTimer = null;
 let audioCtx = null, analyser = null, micStream = null, freq = null, level = 0;
 
@@ -184,57 +185,67 @@ function makeRecognition(){
   r.interimResults = true;
   r.maxAlternatives = m === 'tanglish' ? 3 : 1;
 
-  let lastProcessed = '';
+ 
 
   r.onresult = e => {
-    let full = '';
+    const last = e.results[e.results.length - 1];
 
-    // Process only the current recognition results
-    for(let i = 0; i < e.results.length; i++){
-      full += pickAlternative(e.results[i]) + ' ';
-    }
-
-    let text = norm(full);
+let text = norm(pickAlternative(last));
 
     if(langSel.value === 'tanglish'){
       text = tanglishFix(text);
     }
-
-    const last = e.results[e.results.length - 1];
+;
 
     heard.innerHTML =
       '<span class="' +
       (last.isFinal ? '' : 'interim') +
       '">' + escapeHtml(text.slice(-160)) + '</span>';
 
-    const m = wakeRe().exec(text);
-    if(!m) return;
+    let command = '';
 
-    if(!waitingForCommand){
-      waitingForCommand = true;
-      lastProcessed = '';
+if(!continuousMode){
+  const m = wakeRe().exec(text);
+  if(!m) return;
 
-      chime('wake');
-      ripple();
+  let continuousMode = false;
+let lastProcessed = '';
+  if(!waitingForCommand){
+    waitingForCommand = true;
+    lastProcessed = '';
 
-      setState('command','LISTENING FOR COMMAND…');
+    chime('wake');
+    ripple();
 
-      clearTimeout(noCmdTimer);
+    setState('command','LISTENING FOR COMMAND…');
 
-      noCmdTimer = setTimeout(()=>{
-        if(waitingForCommand && !pendingCmd){
-          cancelCommand();
-        }
-      }, 9000);
-    }
+    clearTimeout(noCmdTimer);
 
-    const command = text.slice(m.index + m[0].length).trim();
+    noCmdTimer = setTimeout(()=>{
+      if(waitingForCommand && !pendingCmd){
+        cancelCommand();
+      }
+    }, 9000);
+  }
 
-    if(command === lastProcessed) return;
+  command = text.slice(m.index + m[0].length).trim();
 
-    lastProcessed = command;
-    pendingCmd = command;
+} else {
+  if(!waitingForCommand){
+    waitingForCommand = true;
+    lastProcessed = '';
+    setState('command','LISTENING FOR COMMAND…');
+  }
 
+  command = text;
+}
+
+    if(!command) return;
+
+if(command === lastProcessed) return;
+
+lastProcessed = command;
+pendingCmd = command;
     cmdEl.textContent = pendingCmd || '…';
 
     clearTimeout(silenceTimer);
@@ -276,21 +287,50 @@ function makeRecognition(){
 function safeStart(){ try{ recognition.start(); }catch(_){} }
 function restartRecognition(){ try{ recognition.abort(); }catch(_){} }  // clears old text; onend restarts
 
+
 function finishCommand(){
   const text = pendingCmd.trim();
-  clearTimeout(silenceTimer); clearTimeout(noCmdTimer);
-  waitingForCommand = false; pendingCmd = '';
-  if(!text){ cancelCommand(); return; }
-  window.postMessage({type:'DUDE_SEND_COMMAND', text}, '*');
-  chime('sent'); ripple();
-  setState('sent','COMMAND SENT ✔');
+
+  clearTimeout(silenceTimer);
+  clearTimeout(noCmdTimer);
+
+  waitingForCommand = false;
+pendingCmd = '';
+lastProcessed = '';
+  if(!text){
+    cancelCommand();
+    return;
+  }
+
+  window.postMessage({
+    type: 'DUDE_SEND_COMMAND',
+    text
+  }, '*');
+
+  chime('sent');
+  ripple();
+
+  setState('sent', 'COMMAND SENT ✔');
   cmdEl.textContent = text;
-  const li=document.createElement('li');
-  li.textContent = new Date().toLocaleTimeString()+'  —  '+text;
-  logEl.prepend(li); while(logEl.children.length>6) logEl.lastChild.remove();
-  restartRecognition();
-  setTimeout(()=>{ if(isRunning && !waitingForCommand) setState('wake','SAY "HEY DUDE"'); }, 1800);
+
+  const li = document.createElement('li');
+  li.textContent =
+    new Date().toLocaleTimeString() + ' — ' + text;
+
+  logEl.prepend(li);
+
+  while(logEl.children.length > 6){
+    logEl.lastChild.remove();
+  }
+
+  // Keep Dude listening for the next command
+  setTimeout(() => {
+    if(isRunning && !waitingForCommand){
+      setState('command', 'READY FOR NEXT COMMAND');
+    }
+  }, 1000);
 }
+
 function cancelCommand(){
   waitingForCommand=false; pendingCmd=''; clearTimeout(silenceTimer); clearTimeout(noCmdTimer);
   cmdEl.textContent='—'; chime('cancel');
@@ -312,7 +352,10 @@ async function startDude(){
   safeStart();
 }
 function stopDude(fromError){
-  isRunning = false; waitingForCommand = false; pendingCmd='';
+ isRunning = true;
+waitingForCommand = false;
+continuousMode = false;
+pendingCmd = '';
   clearTimeout(silenceTimer); clearTimeout(noCmdTimer);
   if(recognition){ try{ recognition.abort(); }catch(_){} recognition=null; }
   if('speechSynthesis' in window) speechSynthesis.cancel();
