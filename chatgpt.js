@@ -6,6 +6,60 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const editor =
       document.querySelector("#prompt-textarea") ||
       document.querySelector('[contenteditable="true"]');
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action !== "TYPE_MESSAGE") return;
+
+  try {
+    const text = message.text?.trim();
+
+    if (!text) {
+      sendResponse({ success: false, error: "Empty message" });
+      return;
+    }
+
+    const editor =
+      document.querySelector("#prompt-textarea") ||
+      document.querySelector(
+        '[contenteditable="true"].ProseMirror'
+      ) ||
+      document.querySelector('[contenteditable="true"]');
+
+    if (!editor) {
+      sendResponse({
+        success: false,
+        error: "ChatGPT editor not found"
+      });
+      return;
+    }
+
+    editor.focus();
+
+    const paragraph = document.createElement("p");
+    paragraph.textContent = text;
+
+    editor.replaceChildren(paragraph);
+
+    editor.dispatchEvent(new InputEvent("input", {
+      bubbles: true,
+      inputType: "insertText",
+      data: text
+    }));
+
+    sendResponse({
+      success: true,
+      message: "Text inserted"
+    });
+
+  } catch (error) {
+    console.error("DUDE ERROR:", error);
+
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 
     if (!editor) {
       sendResponse({
