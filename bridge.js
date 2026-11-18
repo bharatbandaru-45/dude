@@ -1,55 +1,61 @@
 
-window.addEventListener("message", (event) => {
-  if (event.source !== window) return;
+(() => {
+  let extensionAvailable = true;
 
-  if (event.data?.type !== "DUDE_SEND_COMMAND") return;
+  window.addEventListener("message", (event) => {
+    if (event.source !== window) return;
 
-  const command = event.data.text?.trim();
+    if (event.data?.type !== "DUDE_SEND_COMMAND") return;
 
-  if (!command) {
-    console.warn("DUDE CONNECT: Empty command");
-    return;
-  }
+    const command = event.data.text?.trim();
 
-  try {
-    if (!chrome?.runtime?.id) {
+    if (!command) return;
+
+    if (!extensionAvailable) {
       console.error(
-        "DUDE CONNECT: Extension context unavailable. Reload the extension and refresh this page."
+        "DUDE CONNECT: Extension disconnected. Refresh this page."
       );
       return;
     }
 
-    chrome.runtime.sendMessage(
-      {
-        action: "SEND_TO_CHATGPT",
-        text: command
-      },
-      (response) => {
-        const error = chrome.runtime.lastError;
+    try {
+      chrome.runtime.sendMessage(
+        {
+          action: "SEND_TO_CHATGPT",
+          text: command
+        },
+        (response) => {
+          try {
+            const error = chrome.runtime.lastError;
 
-        if (error) {
-          console.error(
-            "DUDE CONNECT:",
-            error.message
-          );
-          return;
+            if (error) {
+              console.error(
+                "DUDE CONNECT:",
+                error.message
+              );
+
+              if (
+                error.message.includes("context invalidated") ||
+                error.message.includes("Extension context")
+              ) {
+                extensionAvailable = false;
+              }
+
+              return;
+            }
+
+            console.log("DUDE CONNECT:", response);
+
+          } catch (error) {
+            extensionAvailable = false;
+            console.error("DUDE CONNECT:", error.message);
+          }
         }
+      );
 
-        if (!response) {
-          console.warn(
-            "DUDE CONNECT: No response from background.js"
-          );
-          return;
-        }
-
-        console.log("DUDE CONNECT SUCCESS:", response);
-      }
-    );
-
-  } catch (error) {
-    console.error(
-      "DUDE CONNECT ERROR:",
-      error.message
-    );
-  }
-});
+    } catch (error) {
+      extensionAvailable = false;
+      console.error("DUDE CONNECT:", error.message);
+    }
+  });
+})();
