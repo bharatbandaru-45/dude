@@ -171,50 +171,108 @@ function pickAlternative(result){
 }
 
 /* ---------- Recognition ---------- */
+
 function makeRecognition(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR) return null;
+
   const r = new SR();
   const m = langSel.value;
-  r.lang = m==='te' ? 'te-IN' : 'en-IN';
+
+  r.lang = m === 'te' ? 'te-IN' : 'en-IN';
   r.continuous = true;
   r.interimResults = true;
-  r.maxAlternatives = m==='tanglish' ? 5 : 3;
+  r.maxAlternatives = m === 'tanglish' ? 3 : 1;
+
+  let lastProcessed = '';
 
   r.onresult = e => {
-    let full='';
-    for(let i=0;i<e.results.length;i++) full += pickAlternative(e.results[i]) + ' ';
+    let full = '';
+
+    // Process only the current recognition results
+    for(let i = 0; i < e.results.length; i++){
+      full += pickAlternative(e.results[i]) + ' ';
+    }
+
     let text = norm(full);
-    if(langSel.value==='tanglish') text = tanglishFix(text);
-    const last = e.results[e.results.length-1];
-    heard.innerHTML = '<span class="'+(last.isFinal?'':'interim')+'">'+escapeHtml(text.slice(-160))+'</span>';
+
+    if(langSel.value === 'tanglish'){
+      text = tanglishFix(text);
+    }
+
+    const last = e.results[e.results.length - 1];
+
+    heard.innerHTML =
+      '<span class="' +
+      (last.isFinal ? '' : 'interim') +
+      '">' + escapeHtml(text.slice(-160)) + '</span>';
 
     const m = wakeRe().exec(text);
-    if(!m){ return; }
+    if(!m) return;
+
     if(!waitingForCommand){
       waitingForCommand = true;
-      chime('wake'); ripple();
+      lastProcessed = '';
+
+      chime('wake');
+      ripple();
+
       setState('command','LISTENING FOR COMMAND…');
+
       clearTimeout(noCmdTimer);
-      noCmdTimer = setTimeout(()=>{ if(waitingForCommand && !pendingCmd) cancelCommand(); }, 9000);
+
+      noCmdTimer = setTimeout(()=>{
+        if(waitingForCommand && !pendingCmd){
+          cancelCommand();
+        }
+      }, 9000);
     }
-    pendingCmd = text.slice(m.index + m[0].length).trim();
+
+    const command = text.slice(m.index + m[0].length).trim();
+
+    if(command === lastProcessed) return;
+
+    lastProcessed = command;
+    pendingCmd = command;
+
     cmdEl.textContent = pendingCmd || '…';
+
     clearTimeout(silenceTimer);
-    if(pendingCmd.length>1){
-      silenceTimer = setTimeout(finishCommand, last.isFinal ? 700 : 1500);
+
+    if(pendingCmd.length > 1){
+      silenceTimer = setTimeout(
+        finishCommand,
+        last.isFinal ? 700 : 1500
+      );
     }
   };
+
   r.onerror = e => {
-    if(e.error==='no-speech' || e.error==='aborted') return;
-    if(e.error==='not-allowed' || e.error==='service-not-allowed'){
-      setState('error','MIC PERMISSION DENIED'); stopDude(true); return;
+    if(e.error === 'no-speech' || e.error === 'aborted') return;
+
+    if(
+      e.error === 'not-allowed' ||
+      e.error === 'service-not-allowed'
+    ){
+      setState('error','MIC PERMISSION DENIED');
+      stopDude(true);
+      return;
     }
-    setState('error','ERROR: '+e.error.toUpperCase());
+
+    setState('error','ERROR: ' + e.error.toUpperCase());
   };
-  r.onend = () => { if(isRunning) setTimeout(()=>{ if(isRunning) safeStart(); }, 150); };
+
+  r.onend = () => {
+    if(isRunning){
+      setTimeout(()=>{
+        if(isRunning) safeStart();
+      }, 150);
+    }
+  };
+
   return r;
 }
+
 function safeStart(){ try{ recognition.start(); }catch(_){} }
 function restartRecognition(){ try{ recognition.abort(); }catch(_){} }  // clears old text; onend restarts
 
