@@ -95,7 +95,7 @@ footer{margin-top:18px;font-size:11px;letter-spacing:.35em;opacity:.45}
   <div class="panel"><small>COMMAND</small><p id="cmd">—</p></div>
   <div class="panel"><small>SENT TO CHATGPT EDITOR (REVIEW &amp; PRESS SEND YOURSELF)</small><ul id="log"></ul></div>
 
-  <p class="tip">Say <b>"Hey Dude"</b>, pause a moment, then speak your command. Dude sends the text after you stop speaking for ~1.5 s. Messages are only typed into ChatGPT — you press Send.<br>Use Chrome, a quiet room, and keep the mic 15–20 cm from your mouth.</p>
+  <p class="tip">Say <b>"Hey Dude"</b>, pause a moment, then speak your command. Say <b>"Stop Dude"</b> or <b>"Deactivate Dude"</b> to fully turn off listening and the microphone. Dude sends the text after you stop speaking for ~1.5 s. Messages are only typed into ChatGPT — you press Send.<br>Use Chrome, a quiet room, and keep the mic 15–20 cm from your mouth.</p>
   <footer>POWERED BY PROJECT DUDE</footer>
 </main>
 
@@ -290,6 +290,19 @@ function makeRecognition() {
 
     if (langSel.value === 'tanglish') {
       text = tanglishFix(text);
+    }
+
+    // Full voice deactivation: stop recognition, microphone and all pending timers.
+    // Supported phrases: "Stop Dude", "Deactivate Dude", "Dude stop",
+    // "Dude deactivate", "Aapu Dude" and "Dude aapu".
+    const stopCommand =
+      /\\b(?:stop|deactivate|aapu|aapey)\\s+dude\\b|\\bdude\\s+(?:stop|deactivate|aapu|aapey)\\b/i;
+
+    if (stopCommand.test(text)) {
+      stopDude();
+      cmdEl.textContent = 'VOICE STOP COMMAND';
+      setState('idle', 'DUDE DEACTIVATED');
+      return;
     }
 
     const last = e.results[e.results.length - 1];
