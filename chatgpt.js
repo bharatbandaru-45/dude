@@ -530,3 +530,9 @@ chrome.runtime.onMessage.addListener(
     }
   }
 );
+console.log("🔥 PROJECT DUDE CONTENT SCRIPT LOADED!");
+
+document.body.insertAdjacentHTML(
+  "beforeend",
+  '<div id="dude-test" style="position:fixed;bottom:20px;left:20px;z-index:2147483647;background:#061326;color:#00eaff;border:2px solid #00eaff;padding:15px;border-radius:12px;">PROJECT DUDE TEST</div>'
+);
